@@ -27,22 +27,19 @@ jobs:
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
           
-          # 1. Save our custom patch
-          PATCH_FILE="cli-args-support.patch"
-          cp "$PATCH_FILE" "$RUNNER_TEMP/cli-args-support.patch"
-          
-          # 2. Add the original repository as a remote
+          # 1. Add the original repository as a remote
           git remote add upstream https://github.com/imsyy/yt-dlp-gui.git
           git fetch upstream master || git fetch upstream main
           UPSTREAM_BRANCH=$(git remote show upstream | grep 'HEAD branch' | cut -d' ' -f5)
           
-          # 3. Reset all source code to upstream, but KEEP our .github/workflows folder
-          # We do this by checking out the upstream branch but then restoring our workflows
-          git checkout "upstream/$UPSTREAM_BRANCH" -- .
-          git checkout HEAD -- .github/workflows/
+          # 2. Reset everything to upstream
+          git reset --hard "upstream/$UPSTREAM_BRANCH"
           
-          # 4. Restore and Apply the patch
-          cp "$RUNNER_TEMP/cli-args-support.patch" .
+          # 3. Restore our custom files from the branch we just came from (HEAD@{1})
+          # We need cli-args-support.patch and our workflow file
+          git checkout HEAD@{1} -- cli-args-support.patch .github/workflows/sync-patch-release.yml
+          
+          # 4. Apply the patch to the new code
           git apply --whitespace=fix cli-args-support.patch
           
           # 5. Commit the changes
