@@ -10,7 +10,6 @@ on:
 
 permissions:
   contents: write
-  workflows: write
 
 jobs:
   sync-and-patch:
@@ -28,33 +27,29 @@ jobs:
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
           
-          # 1. Save our custom patch and this workflow
+          # 1. Save our custom patch
           PATCH_FILE="cli-args-support.patch"
           cp "$PATCH_FILE" "$RUNNER_TEMP/cli-args-support.patch"
-          cp .github/workflows/sync-patch-release.yml "$RUNNER_TEMP/sync-patch-release.yml"
           
           # 2. Add the original repository as a remote
           git remote add upstream https://github.com/imsyy/yt-dlp-gui.git
           git fetch upstream master || git fetch upstream main
-          
-          # 3. Force reset our current branch to upstream
           UPSTREAM_BRANCH=$(git remote show upstream | grep 'HEAD branch' | cut -d' ' -f5)
-          git reset --hard "upstream/$UPSTREAM_BRANCH"
           
-          # 4. Cleanup redundant upstream workflows to avoid runners & conflicts
-          rm -f .github/workflows/build.yml .github/workflows/release.yml
+          # 3. Reset all source code to upstream, but KEEP our .github/workflows folder
+          # We do this by checking out the upstream branch but then restoring our workflows
+          git checkout "upstream/$UPSTREAM_BRANCH" -- .
+          git checkout HEAD -- .github/workflows/
           
-          # 5. Restore and Apply the patch
+          # 4. Restore and Apply the patch
           cp "$RUNNER_TEMP/cli-args-support.patch" .
-          mkdir -p .github/workflows
-          cp "$RUNNER_TEMP/sync-patch-release.yml" .github/workflows/
           git apply --whitespace=fix cli-args-support.patch
           
-          # 6. Commit the changes
+          # 5. Commit the changes
           git add .
           git commit -m "Auto-sync with upstream and apply custom patch" || echo "No changes to commit"
           
-          # 7. Push back to master
+          # 6. Push back to master
           git push origin HEAD:master --force
 
       - name: Get Version
