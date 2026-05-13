@@ -117,6 +117,21 @@ const handleDeepLink = (deepLinkUrl: string) => {
   }
 };
 
+const handleCliArgs = (args: string[]) => {
+  if (!args || args.length === 0) return;
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === "--cookie-file" && i + 1 < args.length) {
+      settingStore.cookieFile = args[i + 1];
+      settingStore.cookieMode = "file";
+      i++;
+    } else if (arg === "--save-dir" && i + 1 < args.length) {
+      settingStore.downloadDir = args[i + 1];
+      i++;
+    }
+  }
+};
+
 /** 启动时自动检查应用更新 */
 const checkAppUpdate = async () => {
   try {
@@ -138,6 +153,15 @@ onMounted(async () => {
   if (settingStore.autoCheckUpdate) {
     checkAppUpdate();
   }
+
+  // 处理 CLI 参数
+  try {
+    const args = await invoke<string[]>("get_cli_args");
+    handleCliArgs(args);
+  } catch {
+    // 忽略错误
+  }
+
   // 冷启动：应用是被深链接拉起的，立刻读取触发 URL 并填充
   // （onOpenUrl 在监听器注册前到达的事件可能丢失，必须用 getCurrent 兜底）
   try {
@@ -155,6 +179,10 @@ onMounted(async () => {
   // single-instance 转发的深链接（应用已运行时再次唤起）
   listen<string>("deep-link-url", (event) => {
     handleDeepLink(event.payload);
+  });
+  // single-instance 转发的 CLI 参数
+  listen<string[]>("cli-args", (event) => {
+    handleCliArgs(event.payload);
   });
 });
 </script>

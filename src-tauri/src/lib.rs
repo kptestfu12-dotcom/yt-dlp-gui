@@ -42,6 +42,11 @@ fn update_tray_menu(
     Ok(())
 }
 
+#[tauri::command]
+fn get_cli_args() -> Vec<String> {
+    std::env::args().collect()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -54,11 +59,17 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
-            // 将深链接 URL 转发到前端
+            // 将深链接 URL 和 CLI 参数转发到前端
+            let mut cli_args = Vec::new();
             for arg in &args {
                 if arg.starts_with("ytdlp-gui://") {
                     let _ = app.emit("deep-link-url", arg.clone());
+                } else {
+                    cli_args.push(arg.clone());
                 }
+            }
+            if !cli_args.is_empty() {
+                let _ = app.emit("cli-args", cli_args);
             }
             if let Some(w) = app.get_webview_window("main") {
                 let _ = w.unminimize();
@@ -109,6 +120,7 @@ pub fn run() {
         })
         .manage(commands::DownloadState::default())
         .invoke_handler(tauri::generate_handler![
+            get_cli_args,
             update_tray_menu,
             reveal_browser_extension,
             commands::get_platform,

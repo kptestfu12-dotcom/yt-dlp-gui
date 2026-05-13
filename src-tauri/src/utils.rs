@@ -103,9 +103,25 @@ fn find_system_executable(name: &str) -> Option<PathBuf> {
 }
 
 /// 解析可执行文件路径
-/// - system-preferred: 优先系统安装路径，其次应用管理路径
-/// - app-only: 仅应用管理路径
+/// 0. 优先当前运行的可执行文件所在目录 (gui.exe 同级目录)
+/// 1. system-preferred: 优先系统安装路径，其次应用管理路径
+/// 2. app-only: 仅应用管理路径
 fn resolve_executable_path(managed_path: PathBuf, system_name: &str) -> PathBuf {
+    // 优先检查当前可执行文件同级目录 (GUI 所在目录)
+    if let Ok(current_exe) = std::env::current_exe() {
+        if let Some(parent) = current_exe.parent() {
+            let exe_name = if cfg!(target_os = "windows") {
+                format!("{}.exe", system_name)
+            } else {
+                system_name.to_string()
+            };
+            let local_path = parent.join(exe_name);
+            if local_path.exists() {
+                return local_path;
+            }
+        }
+    }
+
     match get_path_resolve_mode() {
         BinaryPathResolveMode::AppOnly => managed_path,
         BinaryPathResolveMode::SystemPreferred => {
