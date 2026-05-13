@@ -1,0 +1,80 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_suffix:
+        description: 'Suffix for the tag (e.g. custom-1)'
+        required: false
+        default: 'custom-1'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install
+
+      - name: Get Version
+        id: get_version
+        shell: pwsh
+        run: |
+          $json = Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json
+          $version = $json.version
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "TAG=v$version-${{ github.event.inputs.tag_suffix }}" >> $env:GITHUB_OUTPUT
+
+      - name: Build and Release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ steps.get_version.outputs.TAG }}
+          releaseName: "YDL GUI ${{ steps.get_version.outputs.TAG }}"
+          releaseDraft: false
+          prerelease: false
+          generateReleaseNotes: true
+          includeUpdaterJson: true
+          args: --target ${{ matrix.target }}
