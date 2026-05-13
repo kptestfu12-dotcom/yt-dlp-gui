@@ -50,9 +50,9 @@
     },
     "updater": {
       "endpoints": [
-        "https://github.com/imsyy/yt-dlp-gui/releases/latest/download/latest.json"
+        "https://github.com/kptestfu12-dotcom/yt-dlp-gui/releases/latest/download/latest.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJENzM3NUZDRDIzNDM3MzcKUldRM056VFMvSFZ6dldFQXBCT0JXcmNLRHRmd0tKNE1ucEFnWTl2WHZOcHFSZ205QnFFNjRibUMK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdEN0E3RTlENEZBMzU3NUIKUldSYlY2TlBuWDU2ZmFjN3dJTUh5QzJrZWVSdjhJWWs5M0hLZE9RMVNSeGVBdXc2M1k5THNMeXQK",
       "windows": {
         "installMode": "passive"
       }
