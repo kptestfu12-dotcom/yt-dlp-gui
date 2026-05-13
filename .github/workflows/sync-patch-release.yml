@@ -35,9 +35,10 @@ jobs:
           # 2. Reset everything to upstream
           git reset --hard "upstream/$UPSTREAM_BRANCH"
           
-          # 3. Restore our custom files from the branch we just came from (HEAD@{1})
-          # We need cli-args-support.patch and our workflow file
-          git checkout HEAD@{1} -- cli-args-support.patch .github/workflows/sync-patch-release.yml
+          # 3. Restore our custom files from the patch-storage branch
+          # This ensures we always have the correct patch and workflow regardless of upstream changes
+          git fetch origin patch-storage
+          git checkout origin/patch-storage -- cli-args-support.patch .github/workflows/sync-patch-release.yml
           
           # 4. Apply the patch to the new code
           git apply --whitespace=fix cli-args-support.patch
